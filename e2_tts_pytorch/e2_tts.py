@@ -659,7 +659,7 @@ class E2TTS(Module):
 
         if self.immiscible:
             cost = torch.cdist(x1.flatten(1), x0.flatten(1))
-            _, reorder_indices = linear_sum_assignment(cost)
+            _, reorder_indices = linear_sum_assignment(cost.cpu())
             x0 = x0[reorder_indices]
 
         # t is random times from above
