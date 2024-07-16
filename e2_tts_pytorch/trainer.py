@@ -73,8 +73,6 @@ class HFDataset(Dataset):
         row = self.data[index]
         audio = row['audio']['array']
 
-        logger.info(f"Audio shape: {audio.shape}")
-
         sample_rate = row['audio']['sampling_rate']
         duration = audio.shape[-1] / sample_rate
 
@@ -190,7 +188,6 @@ class E2Trainer:
                 self.optimizer.zero_grad()
                 
                 if self.accelerator.is_local_main_process:
-                    logger.info(f"Step {global_step+1}: Loss = {loss.item():.4f}")
                     self.writer.add_scalar('E2E Loss', loss.item(), global_step)
                 
                 global_step += 1
@@ -219,7 +216,6 @@ class E2Trainer:
                         val_loss/=len(val_dataloader)
                         if self.duration_predictor is not None:
                             self.writer.add_scalar('Validation/Duration Loss', val_dur_loss.item(), global_step)
-                        logger.info(f"Step {global_step+1}: Loss = {loss.item():.4f}")
                         self.writer.add_scalar('Validation/E2E Loss', val_loss.item(), global_step)
             
             epoch_loss /= len(train_dataloader)
