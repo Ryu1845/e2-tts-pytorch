@@ -27,7 +27,7 @@ e2tts = E2TTS(
 
 dataset = load_dataset("theodorr/ljspeech", split="train").train_test_split(test_size=0.05)
 train_dataset = dataset["train"]
-val_dataset = dataset["val"]
+val_dataset = dataset["test"]
 train_dataset = HFDataset(train_dataset)
 val_dataset = HFDataset(val_dataset)
 

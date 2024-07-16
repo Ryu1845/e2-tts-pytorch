@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import os
+from io import BytesIO
 from tqdm import tqdm
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 import torch
 import torch.nn.functional as F
@@ -20,6 +24,21 @@ from e2_tts_pytorch.e2_tts import (
     DurationPredictor,
     MelSpec
 )
+
+
+def mel_spec_to_image(mel_spec):
+    # Create a figure
+    fig, ax = plt.subplots()
+    ax.imshow(mel_spec[0].detach().cpu())
+
+    fig.canvas.draw()
+    img_arr = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+
+    # Reshape the array
+    img_arr = img_arr.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+    img_arr = np.moveaxis(img_arr,-1,0)
+    return img_arr
+
 
 def exists(v):
     return v is not None
@@ -215,8 +234,15 @@ class E2Trainer:
                         val_dur_loss/=len(val_dataloader)
                         val_loss/=len(val_dataloader)
                         if self.duration_predictor is not None:
-                            self.writer.add_scalar('Validation/Duration Loss', val_dur_loss.item(), global_step)
-                        self.writer.add_scalar('Validation/E2E Loss', val_loss.item(), global_step)
+                            self.writer.add_scalar('Validation/Duration Loss', val_dur_loss, global_step)
+                        self.writer.add_scalar('Validation/E2E Loss', val_loss, global_step)
+                    for idx, batch in enumerate(val_dataloader):
+                        if idx>10:
+                            break
+                        text_inputs = batch['text']
+                        mel_spec = rearrange(batch['mel'], 'b d n -> b n d')
+                        sample = self.model.sample(mel_spec[:1], text=text_inputs[:1], lens=batch["mel_lengths"][:1])
+                        self.writer.add_image(f"Validation/sample_{idx}", mel_spec_to_image(sample), global_step)
             
             epoch_loss /= len(train_dataloader)
             if self.accelerator.is_local_main_process:
