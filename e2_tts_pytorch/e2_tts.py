@@ -100,16 +100,16 @@ def maybe_masked_mean(
 class MelSpec(Module):
     def __init__(
         self,
-        filter_length = 1024,
+        filter_length = 2048,
         hop_length = 256,
-        win_length = 1024,
-        n_mel_channels = 80,
-        mel_fmin = 0,
-        mel_fmax = 8000,
-        sampling_rate = 22050,
+        win_length = 2048,
+        n_mel_channels = 128,
+        mel_fmin = 0.,
+        mel_fmax = None,
+        sampling_rate = 48000,
         normalize = False,
-        power = 2,
-        norm = "slaney"
+        power = 1,
+        norm = "htk"
     ):
         super().__init__()
         self.n_mel_channels = n_mel_channels
@@ -125,6 +125,7 @@ class MelSpec(Module):
             f_max=mel_fmax,
             n_mels=n_mel_channels,
             norm=norm,
+            center=True,
         )
 
         self.register_buffer('dummy', torch.tensor(0), persistent = False)

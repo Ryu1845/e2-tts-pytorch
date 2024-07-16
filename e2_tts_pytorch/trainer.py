@@ -58,7 +58,7 @@ class HFDataset(Dataset):
     def __init__(
         self,
         hf_dataset: Dataset,
-        target_sample_rate = 22050,
+        target_sample_rate = 48000,
         hop_length = 256
     ):
         self.data = hf_dataset
