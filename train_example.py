@@ -25,7 +25,11 @@ e2tts = E2TTS(
     ),
 )
 
-train_dataset = HFDataset(load_dataset("theodorr/ljspeech", split="train"))
+dataset = load_dataset("theodorr/ljspeech", split="train").train_test_split(test_size=0.05)
+train_dataset = dataset["train"]
+val_dataset = dataset["val"]
+train_dataset = HFDataset(train_dataset)
+val_dataset = HFDataset(val_dataset)
 
 optimizer = Adam(e2tts.parameters(), lr=1e-4)
 
@@ -40,4 +44,4 @@ epochs = 10
 batch_size = 8
 grad_accumulation_steps = 1
 
-trainer.train(train_dataset, epochs, batch_size, grad_accumulation_steps, save_step=1000)
+trainer.train(train_dataset, val_dataset, epochs, batch_size, grad_accumulation_steps, save_step=1000)

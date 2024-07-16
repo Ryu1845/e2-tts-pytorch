@@ -156,11 +156,13 @@ class E2Trainer:
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         return checkpoint['step']
 
-    def train(self, train_dataset, epochs, batch_size, grad_accumulation_steps=1, num_workers=12, save_step=1000):
+    def train(self, train_dataset, val_dataset, epochs, batch_size, grad_accumulation_steps=1, num_workers=12, save_step=1000):
         # (todo) gradient accumulation needs to be accounted for
 
         train_dataloader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True, num_workers=num_workers, pin_memory=True)
         train_dataloader = self.accelerator.prepare(train_dataloader)
+        val_dataloader = DataLoader(val_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True, num_workers=num_workers, pin_memory=True)
+        val_dataloader = self.accelerator.prepare(val_dataloader)
         start_step = self.load_checkpoint()
         global_step = start_step
 
@@ -197,6 +199,28 @@ class E2Trainer:
                 
                 if global_step % save_step == 0:
                     self.save_checkpoint(global_step)
+                    self.model.eval()
+                    val_progress_bar = tqdm(val_dataloader, desc=f"Epoch {epoch+1}/{epochs}", unit="step", disable=not self.accelerator.is_local_main_process)
+                    val_dur_loss=0.0
+                    val_loss=0.0
+                    for batch in val_progress_bar:
+                        text_inputs = batch['text']
+                        mel_spec = rearrange(batch['mel'], 'b d n -> b n d')
+                        mel_lengths = batch["mel_lengths"]
+                        
+                        if self.duration_predictor is not None:
+                            dur_loss = self.duration_predictor(mel_spec, target_duration=batch.get('durations'))
+                            val_dur_loss+=dur_loss
+                        loss = self.model(mel_spec, text=text_inputs, lens=mel_lengths)
+                        val_loss+=loss.item()
+                        val_progress_bar.set_postfix(loss=loss.item())
+                    if self.accelerator.is_local_main_process:
+                        val_dur_loss/=len(val_dataloader)
+                        val_loss/=len(val_dataloader)
+                        if self.duration_predictor is not None:
+                            self.writer.add_scalar('Validation/Duration Loss', val_dur_loss.item(), global_step)
+                        logger.info(f"Step {global_step+1}: Loss = {loss.item():.4f}")
+                        self.writer.add_scalar('Validation/E2E Loss', val_loss.item(), global_step)
             
             epoch_loss /= len(train_dataloader)
             if self.accelerator.is_local_main_process:
