@@ -25,7 +25,7 @@ e2tts = E2TTS(
     ),
 )
 
-train_dataset = HFDataset(load_dataset("MushanW/GLOBE", split="train"))
+train_dataset = HFDataset(load_dataset("theodorr/ljspeech", split="train"))
 
 optimizer = Adam(e2tts.parameters(), lr=1e-4)
 

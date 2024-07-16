@@ -94,7 +94,7 @@ class HFDataset(Dataset):
         
         mel_spec = rearrange(mel_spec, '1 d t -> d t')
         
-        text = row['transcript']
+        text = row['text']
         
         return dict(
             mel_spec = mel_spec,
